@@ -1,0 +1,11 @@
+Build.PL
+Changes
+lib/CPANPLUS/Dist/SUSE.pm
+MANIFEST
+README
+t/00-load.t
+t/manifest.t
+t/pod-coverage.t
+t/pod.t
+Makefile.PL
+META.yml
