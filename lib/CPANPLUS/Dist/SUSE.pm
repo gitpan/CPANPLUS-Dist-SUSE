@@ -279,6 +279,7 @@ __END__
 =head1 AUTHOR
 
 Qindel Formacion y Servicios, SL, C<< <Nito at Qindel.ES> >>
+
 Matthias Weckbecker, <matthias@weckbecker.name>
 
 =head1 BUGS
@@ -319,6 +320,7 @@ L<http://search.cpan.org/dist/CPANPLUS-Dist-SUSE/>
 =head1 LICENSE AND COPYRIGHT
 
 Copyright 2010 Qindel Formacion y Servicios, SL.
+
 Copyright 2011 Matthias Weckbecker, <matthias@weckbecker.name>
 
 This program is free software; you can redistribute it and/or modify it
