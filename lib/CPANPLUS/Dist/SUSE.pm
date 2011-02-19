@@ -1,12 +1,11 @@
 package CPANPLUS::Dist::SUSE;
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 use strict;
 use warnings;
 use base 'CPANPLUS::Dist::RPM';
 
 use English;
-
 # imports error(), msg()
 use CPANPLUS::Error;
 use IPC::Cmd qw{ run can_run };
@@ -19,7 +18,7 @@ CPANPLUS::Dist::SUSE - To build RPM files from cpan for SUSE
 
 =head1 VERSION
 
-Version 0.02
+Version 0.03
 
 =cut
 
@@ -173,7 +172,7 @@ __[ spec ]__
 #
 # spec file for package [% status.rpmname %] (Version [% status.distvers %])
 #
-# Copyright (c) 2010 SUSE LINUX Products GmbH, Nuernberg, Germany.
+# Copyright (c) 2011 SUSE LINUX Products GmbH, Nuernberg, Germany.
 # This file and all modifications and additions to the pristine
 # package are under the same license as the package itself.
 #
