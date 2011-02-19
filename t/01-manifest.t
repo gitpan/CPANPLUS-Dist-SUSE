@@ -10,6 +10,10 @@ unless ( $ENV{RELEASE_TESTING} ) {
 
 eval "use Test::CheckManifest 0.9";
 plan skip_all => "Test::CheckManifest 0.9 required" if $@;
-ok_manifest({filter=> [qr/(~$|.bak$)/],
-	    exclude => ['/ignore.txt'],
-	    bool => 'or'});
+ok_manifest(
+    {
+        filter  => [qr/(~$|.bak$)/],
+        exclude => ['/ignore.txt'],
+        bool    => 'or'
+    }
+);

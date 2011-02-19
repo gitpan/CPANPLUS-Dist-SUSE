@@ -1,13 +1,15 @@
 package CPANPLUS::Dist::SUSE;
+our $VERSION = '0.02';
 
-use warnings;
 use strict;
+use warnings;
 use base 'CPANPLUS::Dist::RPM';
 
 use English;
+
 # imports error(), msg()
 use CPANPLUS::Error;
-use IPC::Cmd         qw{ run can_run };
+use IPC::Cmd qw{ run can_run };
 use Path::Class;
 use SUPER;
 
@@ -17,12 +19,9 @@ CPANPLUS::Dist::SUSE - To build RPM files from cpan for SUSE
 
 =head1 VERSION
 
-Version 0.01
+Version 0.02
 
 =cut
-
-our $VERSION = '0.01';
-
 
 =head1 SYNOPSIS
 
@@ -61,8 +60,8 @@ Checks if /etc/SuSE-release file exists
 sub format_available {
 
     # Check SUSE release file
-    if ( ! -f '/etc/SuSE-release' ) {
-        error( 'Not on a SUSE system' );
+    if ( !-f '/etc/SuSE-release' ) {
+        error('Not on a SUSE system');
         return 0;
     }
 
@@ -74,7 +73,7 @@ sub format_available {
 # Returns true if there's already a package built for this module.
 #
 sub _has_been_built {
-    my ($self, $name, $vers) = @_;
+    my ( $self, $name, $vers ) = @_;
 
     # FIXME this entire method should be overridden to first check the local
     # rpmdb, then check the yum repos via repoquery.  As is we're pretty
@@ -84,6 +83,21 @@ sub _has_been_built {
     return super;
 }
 
+sub _is_module_build_compat {
+    my $self = shift @_;
+    my $module = shift @_ || $self->parent;
+
+    my $makefile = $module->_status->extract . '/Makefile.PL';
+
+    #my $buildfile = $module->_status->extract . '/Build.PL';
+    if ( !-f $makefile ) {
+        return 0;
+    }
+    $makefile = file $makefile;
+    my $content = $makefile->slurp;
+
+    return $content =~ /Module::Build::Compat/;
+}
 
 =head2 install
 
@@ -106,25 +120,28 @@ cpan2dist ... --dist-opts="--aid= --allfiles= --relocate=/a=/b"
 =cut
 
 sub install {
-    my $self = shift @_;
-    my %opts = $self->_parse_args(@_);
-    my @valid_singleoptions = ("--aid", "--allfiles", "--badreloc",
-        "--excludedocs", "--force", "--hash",
-        "--ignoresize", "--ignorearch", "--ignoreos",
-        "--includedocs", "--justdb", "--nodeps",
-        "--nodigest", "--nosignature", "--nosuggest",
-        "--noorder", "--noscripts", "--notriggers",
-        "--oldpackage", "--percent",
-        "--repackage", "--replacefiles", "--replacepkgs",
-			       "--test");
-    #my $rpm = $self->status->rpm;
-    my $otheropts = '';
-    foreach my $o (@valid_singleoptions) {
-	$otheropts .= $o if (exists($opts{$o}));
-    }
-    my $rpmcmd = 'rpm -Uvh '.$otheropts.' '. $self->status->rpmpath;
+    my $self                = shift @_;
+    my %opts                = $self->_parse_args(@_);
+    my @valid_singleoptions = (
+        "--aid",       "--allfiles",     "--badreloc",    "--excludedocs",
+        "--force",     "--hash",         "--ignoresize",  "--ignorearch",
+        "--ignoreos",  "--includedocs",  "--justdb",      "--nodeps",
+        "--nodigest",  "--nosignature",  "--nosuggest",   "--noorder",
+        "--noscripts", "--notriggers",   "--oldpackage",  "--percent",
+        "--repackage", "--replacefiles", "--replacepkgs", "--test"
+    );
 
-    if ($EUID != 0) {
+    #my $rpm = $self->status->rpm;
+
+    my $otheropts = '';
+
+    foreach my $o (@valid_singleoptions) {
+        $otheropts .= $o if ( exists( $opts{$o} ) );
+    }
+
+    my $rpmcmd = 'rpm -Uvh ' . $otheropts . ' ' . $self->status->rpmpath;
+
+    if ( $EUID != 0 ) {
 
         msg 'trying to invoke rpm via sudo';
 
@@ -132,126 +149,126 @@ sub install {
     }
 
     my $buffer;
+
     my $success = run(
         command => $rpmcmd,
         verbose => $opts{verbose},
         buffer  => \$buffer,
-	);
+    );
 
-    if (!(defined($success)) || not $success) {
+    if ( !( defined($success) ) || not $success ) {
         error "error installing! ($success)";
         printf STDERR $buffer;
+
         #die;
         return $self->status->installed(0);
     }
 
     return $self->status->installed(1);
 }
-
-
-sub _is_module_build_compat {
-    my $self   = shift @_;
-    my $module = shift @_ || $self->parent;
-
-    my $makefile = $module->_status->extract . '/Makefile.PL';
-    #my $buildfile = $module->_status->extract . '/Build.PL';
-    if (! -f $makefile) {
-	return 0;
-    }
-    $makefile = file $makefile;
-    my $content  = $makefile->slurp;
-
-    return $content =~ /Module::Build::Compat/;
-}
-
 1;
 
 __DATA__
 __[ spec ]__
+#
+# spec file for package [% status.rpmname %] (Version [% status.distvers %])
+#
+# Copyright (c) 2010 SUSE LINUX Products GmbH, Nuernberg, Germany.
+# This file and all modifications and additions to the pristine
+# package are under the same license as the package itself.
+#
+# Please submit bugfixes or comments via http://bugs.opensuse.org/
+#
+ 
+# norootforbuild
 
-Name:       [% status.rpmname %]
-Version:    [% status.distvers %]
-Release:    [% status.rpmvers %]%{?dist}
-License:    [% status.license %]
-Group:      Development/Libraries
-Summary:    [% status.summary %]
-Source:     http://search.cpan.org/CPAN/[% module.path %]/[% status.distname %]-%{version}.[% module.package_extension %]
-Url:        http://search.cpan.org/dist/[% status.distname %]
-BuildRoot:  %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-Requires:  perl = %(eval "`%{__perl} -V:version`"; echo $version)
-[% IF status.is_noarch %]BuildArch:  noarch[% END -%]
+Name:           [% status.rpmname %]
+Version:        [% status.distvers %]
+Release:        [% status.rpmvers %]%{?dist}
+License:        [% status.license %]
+Group:          Development/Libraries/Perl
+Summary:        [% status.summary %]
+Source:         http://search.cpan.org/CPAN/[% module.path %]/[% status.distname %]-%{version}.[% module.package_extension %]
+Url:            http://search.cpan.org/dist/[% status.distname %]
+BuildRoot:      %{_tmppath}/%{name}-%{version}-build
+Requires:       perl = %(eval "`%{__perl} -V:version`"; echo $version)
+[% IF status.is_noarch %]
+BuildArch:  noarch
+[% END -%]
 
 [% brs = buildreqs; FOREACH br = brs.keys.sort -%]
 BuildRequires: perl([% br %])[% IF (brs.$br != 0) %] >= [% brs.$br %][% END %]
 [% END -%]
 
-
 %description
 [% status.description -%]
-
 
 %prep
 %setup -q -n [% status.distname %]-%{version}
 
 %build
 [% IF (!status.is_noarch) -%]
-    if [ -f Build.PL ]; then
+if [ -f Build.PL ]; then
     %{__perl} Build.PL --installdirs vendor
 else
-   [ -f Makefile.PL ] || exit 2
+    [ -f Makefile.PL ] || exit 2
     %{__perl} Makefile.PL INSTALLDIRS=vendor OPTIMIZE="%{optflags}"
 fi
 [% ELSE -%]
-    if [ -f Build.PL ]; then
+if [ -f Build.PL ]; then
     %{__perl} Build.PL --installdirs vendor
 else
     %{__perl} Makefile.PL INSTALLDIRS=vendor
 fi
 [% END -%]
-    if [ -f Build.PL ]; then
+if [ -f Build.PL ]; then
     ./Build build flags=%{?_smp_mflags}
 else
-    make %{?_smp_mflags}
+    %{__make} %{?_smp_mflags}
 fi
 
 %install
-rm -rf %{buildroot}
-
 if [ -f Build.PL ]; then
-   ./Build pure_install --destdir %{buildroot}
+    ./Build pure_install --destdir %{buildroot}
 else
-    make pure_install PERL_INSTALL_ROOT=%{buildroot}
+    %{__make} pure_install PERL_INSTALL_ROOT=%{buildroot}
 fi
-    find %{buildroot} -type f -name .packlist -exec rm -f {} ';'
+
+find %{buildroot} -type f -name .packlist -exec rm -f {} ';'
+
 [% IF (!status.is_noarch) -%]
-    find %{buildroot} -type f -name '*.bs' -a -size 0 -exec rm -f {} ';'
+find %{buildroot} -type f -name '*.bs' -a -size 0 -exec rm -f {} ';'
 [% END -%]
-    find %{buildroot} -depth -type d -exec rmdir {} 2>/dev/null ';'
 
-    mkdir -p %{buildroot}/%{_mandir}/man3/ %{buildroot}/usr/bin
-    touch %{buildroot}/%{_mandir}/man3/[% status.distname %].3pm.gz
+find %{buildroot} -depth -type d -exec rmdir {} 2>/dev/null ';'
 
-    %{_fixperms} %{buildroot}/*
+find %{buildroot}/%{perl_vendorlib} -type d > %{_tmppath}/file.list.%{name}
+find %{buildroot} -type f >> %{_tmppath}/file.list.%{name}
 
+%{__sed} -i -e 's|^%{buildroot}||g' %{_tmppath}/file.list.%{name}
+
+%{__sed} -i -r -e 's|(/share/man/man[1-9]/.*\.[1-9]pm)$|\1.gz|; 
+    s|(/share/man/man[1-9]/.*)(\.[1-9])$|\1\2.gz|' %{_tmppath}/file.list.%{name}
+
+%{_fixperms} %{buildroot}/*
+
+[% IF (!skiptest) -%]
 %check
-    if [ -f Build.PL ]; then
-   ./Build test
+if [ -f Build.PL ]; then
+    ./Build test
 else
-   make test
+    %{__make} test
 fi
+[% END -%]
 
 %clean
-    rm -rf %{buildroot}
+[ "$RPM_BUILD_ROOT" != "/" ] && [ -d $RPM_BUILD_ROOT ] && %{__rm} -rf $RPM_BUILD_ROOT
 
-%files
+%files -f %{_tmppath}/file.list.%{name}
 %defattr(-,root,root,-)
-%doc [% docfiles %]
-%{perl_vendorlib}/*
-%{_mandir}/man*/*.*
-/usr/bin
 
 %changelog
-* [% date %] [% packager %] [% status.distvers %]-[% status.rpmvers %]
+* [% date %] [% packager %]
 - initial SUSE packaging
 - generated with cpan2dist (CPANPLUS::Dist::SUSE version [% packagervers %])
 
@@ -262,6 +279,7 @@ __END__
 =head1 AUTHOR
 
 Qindel Formacion y Servicios, SL, C<< <Nito at Qindel.ES> >>
+Matthias Weckbecker, <matthias@weckbecker.name>
 
 =head1 BUGS
 
@@ -269,15 +287,11 @@ Please report any bugs or feature requests to C<bug-cpanplus-dist-rpm-suse at rt
 the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=CPANPLUS-Dist-SUSE>.  I will be notified, and then you'll
 automatically be notified of progress on your bug as I make changes.
 
-
-
-
 =head1 SUPPORT
 
 You can find documentation for this module with the perldoc command.
 
     perldoc CPANPLUS::Dist::SUSE
-
 
 You can also look for information at:
 
@@ -301,20 +315,17 @@ L<http://search.cpan.org/dist/CPANPLUS-Dist-SUSE/>
 
 =back
 
-
 =head1 ACKNOWLEDGEMENTS
-
-
 =head1 LICENSE AND COPYRIGHT
 
 Copyright 2010 Qindel Formacion y Servicios, SL.
+Copyright 2011 Matthias Weckbecker, <matthias@weckbecker.name>
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published
 by the Free Software Foundation; or the Artistic License.
 
 See http://dev.perl.org/licenses/ for more information.
-
 
 =cut
 
